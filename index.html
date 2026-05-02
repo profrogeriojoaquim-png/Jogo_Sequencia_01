@@ -118,12 +118,19 @@
         .feedback-sucesso { background: #bbf7d0; color: #166534; }
         .feedback-erro { background: #fee2e2; color: #991b1b; }
         .hidden { display: none; }
+        /* Estilos para textos de status (substitui Tailwind) */
+        .text-sm { font-size: 14px; }
+        .text-center { text-align: center; }
+        .mt-2 { margin-top: 8px; }
+        .mt-3 { margin-top: 12px; }
+        .text-vermelho { color: #e53e3e; }
+        .text-verde { color: #10b981; }
+        .text-amarelo { color: #f59e0b; }
     </style>
 </head>
 <body>
 
 <div class="container">
-    <!-- TELA INICIAL -->
     <div id="telaInicial">
         <h1>🧩 Sequência Numérica</h1>
         <p>Encontre e clique nos números de 1 a 25 em ordem!</p>
@@ -139,7 +146,6 @@
         <div id="statusConexao" class="text-sm text-center mt-3"></div>
     </div>
 
-    <!-- TELA DO JOGO -->
     <div id="telaJogo" class="hidden">
         <div class="painel">
             <div class="card"><span>NÍVEL</span><span id="nivel">1</span></div>
@@ -151,7 +157,6 @@
         <button id="btnSair">🚪 SAIR</button>
     </div>
 
-    <!-- TELA FINAL -->
     <div id="telaFinal" class="hidden">
         <h1>🏆 Fim de jogo!</h1>
         <div style="background: #eef2ff; padding: 20px; border-radius: 30px; margin: 20px 0;">
@@ -166,32 +171,31 @@
 </div>
 
 <script>
-    // ========== CONFIGURAÇÕES DO SUPABASE ==========
+    // Supabase
     const SUPABASE_URL = 'https://qmcqffnawtfaenyziwsn.supabase.co';
     const SUPABASE_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InFtY3FmZm5hd3RmYWVueXppd3NuIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzQxNTM5NTMsImV4cCI6MjA4OTcyOTk1M30._CjaNoeJeQp-8s8Jt-dk3bJfktdEV97R5LhLnWgYrNc';
-    const supabase = window.supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
+    const supabaseClient = window.supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
 
-    // ========== PARÂMETROS DA URL ==========
+    // Parâmetros da URL
     const urlParams = new URLSearchParams(window.location.search);
     const alunoId = urlParams.get('aluno_id');
     const jogoId = urlParams.get('jogo_id');
     const turmaId = urlParams.get('turma_id');
     const modoTeste = urlParams.get('modo_teste') === 'true';
 
-    // Exibe status na tela inicial
     const statusDiv = document.getElementById('statusConexao');
     if (modoTeste) {
         statusDiv.innerHTML = '🔧 Modo teste - pontuação NÃO será salva';
-        statusDiv.style.color = '#f59e0b';
+        statusDiv.className = 'text-sm text-center mt-3 text-amarelo';
     } else if (!alunoId || !jogoId) {
         statusDiv.innerHTML = '⚠️ Parâmetros ausentes - pontuação NÃO será salva';
-        statusDiv.style.color = '#e53e3e';
+        statusDiv.className = 'text-sm text-center mt-3 text-vermelho';
     } else {
         statusDiv.innerHTML = '✅ Conectado - pontuação será registrada';
-        statusDiv.style.color = '#10b981';
+        statusDiv.className = 'text-sm text-center mt-3 text-verde';
     }
 
-    // ========== CONFIGURAÇÕES DO JOGO ==========
+    // Configurações do jogo
     const TOTAL = 25;
     const TEMPOS = [60, 45, 35, 25, 20];
     const MULT = [1, 1.5, 2, 2.5, 3];
@@ -205,10 +209,10 @@
     let jogoAtivo = false;
     let intervalo = null;
     let tempoRestante = 0;
-    let erros = []; // guarda { esperado, clicado }
+    let erros = [];
     let tempoInicio = null;
 
-    // Referências DOM
+    // Elementos DOM
     const telaInicial = document.getElementById('telaInicial');
     const telaJogo = document.getElementById('telaJogo');
     const telaFinal = document.getElementById('telaFinal');
@@ -218,7 +222,6 @@
     const spanTempo = document.getElementById('tempo');
     const feedback = document.getElementById('feedbackJogo');
 
-    // ========== FUNÇÕES AUXILIARES ==========
     function atualizarUI() {
         spanNivel.textContent = nivel;
         spanPontos.textContent = Math.floor(pontos);
@@ -253,6 +256,7 @@
         intervalo = setInterval(() => {
             if (!jogoAtivo) return;
             if (tempoRestante <= 0) {
+                spanTempo.textContent = '0';
                 clearInterval(intervalo);
                 intervalo = null;
                 jogoAtivo = false;
@@ -322,7 +326,6 @@
     function clicarNumero(numClicado) {
         if (!jogoAtivo) return;
         if (numClicado === proximo) {
-            // Acertou
             const ganho = Math.floor(BASE * getMultiplicador());
             pontos += ganho;
             atualizarUI();
@@ -330,7 +333,6 @@
             mostrarFeedback(`✅ Correto! +${ganho} pontos`, "sucesso");
             proximo++;
             if (proximo > TOTAL) {
-                // Passou de nível
                 nivel++;
                 proximo = 1;
                 atualizarUI();
@@ -341,7 +343,6 @@
             }
             destacarProximo();
         } else {
-            // Errou
             erros.push({ esperado: proximo, clicado: numClicado });
             pontos = Math.max(0, pontos - PENALIDADE);
             atualizarUI();
@@ -349,24 +350,22 @@
         }
     }
 
-    // ========== SALVAR RESULTADO ==========
     async function salvarResultado() {
         if (modoTeste) {
-            document.getElementById('msgSalvo').innerHTML = '🔧 Modo teste - dados não salvos';
+            const msgDiv = document.getElementById('msgSalvo');
+            msgDiv.innerHTML = '🔧 Modo teste - dados não salvos';
+            msgDiv.style.color = '#f59e0b';
             return;
         }
         if (!alunoId || !jogoId) {
-            document.getElementById('msgSalvo').innerHTML = '⚠️ Parâmetros ausentes - não salvo';
+            const msgDiv = document.getElementById('msgSalvo');
+            msgDiv.innerHTML = '⚠️ Parâmetros ausentes - não salvo';
+            msgDiv.style.color = '#e53e3e';
             return;
         }
         const totalAcertos = proximo - 1;
         const totalErros = erros.length;
-        let tempoDecorrido = 0;
-        if (tempoInicio) {
-            tempoDecorrido = Math.floor((Date.now() - tempoInicio) / 1000);
-        } else {
-            tempoDecorrido = getTempoNivel() - tempoRestante;
-        }
+        const tempoDecorrido = Math.floor((Date.now() - tempoInicio) / 1000);
         const dados = {
             aluno_id: alunoId,
             jogo_id: jogoId,
@@ -378,21 +377,21 @@
             habilidade_bncc: 'EF07MA14'
         };
         if (totalErros > 0) dados.detalhes_erros = erros;
+
         console.log("Enviando:", dados);
-        const { error } = await supabase.from('resultados').insert([dados]);
+        const { error } = await supabaseClient.from('resultados').insert([dados]);
         const msgDiv = document.getElementById('msgSalvo');
         if (error) {
             console.error("Erro:", error);
             msgDiv.innerHTML = `❌ Erro ao salvar: ${error.message}`;
-            msgDiv.style.color = 'red';
+            msgDiv.style.color = '#e53e3e';
         } else {
             msgDiv.innerHTML = '✅ Pontuação registrada com sucesso!';
-            msgDiv.style.color = 'green';
+            msgDiv.style.color = '#10b981';
         }
     }
 
-    // ========== FINALIZAR E REINICIAR ==========
-    function finalizarJogo() {
+    async function finalizarJogo() {
         if (!jogoAtivo && telaJogo.classList.contains('hidden')) return;
         jogoAtivo = false;
         if (intervalo) clearInterval(intervalo);
@@ -404,12 +403,11 @@
         document.getElementById('finalErros').textContent = erros.length;
         telaJogo.classList.add('hidden');
         telaFinal.classList.remove('hidden');
-        // Salva
-        salvarResultado();
+        // Aguarda o salvamento terminar
+        await salvarResultado();
     }
 
     function iniciarJogo() {
-        // Reset completo
         nivel = 1;
         pontos = 0;
         proximo = 1;
@@ -427,7 +425,6 @@
 
     function sairJogo() {
         if (jogoAtivo) {
-            // Se o jogo está ativo, finaliza (salva)
             jogoAtivo = false;
             if (intervalo) clearInterval(intervalo);
             intervalo = null;
@@ -443,7 +440,7 @@
         telaInicial.classList.remove('hidden');
     }
 
-    // ========== EVENTOS ==========
+    // Eventos
     document.getElementById('btnIniciar').onclick = iniciarJogo;
     document.getElementById('btnSair').onclick = sairJogo;
     document.getElementById('btnNovamente').onclick = () => {
