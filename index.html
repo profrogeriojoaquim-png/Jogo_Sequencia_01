@@ -169,7 +169,7 @@
                 <p class="font-bold">🏅 Posição na turma</p>
                 <p class="text-2xl font-black" id="rankingPos">--</p>
                 <p class="text-xs" id="rankingTotal"></p>
-                <p class="text-xs text-slate-500 mt-1">* Melhor desempenho (mais pontos, menor tempo)</p>
+                <p class="text-xs text-slate-500 mt-1">* Melhor desempenho (mais acertos, menor tempo)</p>
             </div>
             <div id="msgSalvo" class="text-sm mt-2"></div>
         </div>
@@ -439,8 +439,7 @@
             erros: totalErros,
             tempo_segundos: tempoDecorrido,
             total_questoes: TOTAL,
-            habilidade_bncc: 'EF07MA14',
-            pontuacao: Math.floor(pontos)
+            habilidade_bncc: 'EF07MA14'
         };
         if (totalErros > 0) dados.detalhes_erros = erros;
 
@@ -461,44 +460,41 @@
     async function buscarRanking() {
         if (modoTeste || !turmaId || !jogoId) return;
         try {
-            // Busca o MELHOR resultado de cada aluno da turma (maior pontuação, e menor tempo como desempate)
-            // Mas para simplificar, vamos buscar todos os registros e depois agrupar manualmente por aluno pegando o melhor.
             const { data, error } = await supabaseClient
                 .from('resultados')
-                .select('aluno_id, pontuacao, tempo_segundos')
+                .select('aluno_id, acertos, tempo_segundos')
                 .eq('turma_id', turmaId)
                 .eq('jogo_id', jogoId);
             if (error) throw error;
             if (!data || data.length === 0) return;
 
-            // Agrupar por aluno_id, pegando a maior pontuação e, em caso de empate, menor tempo
+            // Agrupar por aluno_id, pegando o melhor desempenho (mais acertos, menor tempo)
             const melhoresPorAluno = new Map();
             for (const reg of data) {
                 const existing = melhoresPorAluno.get(reg.aluno_id);
                 if (!existing) {
-                    melhoresPorAluno.set(reg.aluno_id, { pontuacao: reg.pontuacao, tempo: reg.tempo_segundos });
+                    melhoresPorAluno.set(reg.aluno_id, { acertos: reg.acertos, tempo: reg.tempo_segundos });
                 } else {
-                    if (reg.pontuacao > existing.pontuacao ||
-                        (reg.pontuacao === existing.pontuacao && reg.tempo_segundos < existing.tempo)) {
-                        melhoresPorAluno.set(reg.aluno_id, { pontuacao: reg.pontuacao, tempo: reg.tempo_segundos });
+                    if (reg.acertos > existing.acertos ||
+                        (reg.acertos === existing.acertos && reg.tempo_segundos < existing.tempo)) {
+                        melhoresPorAluno.set(reg.aluno_id, { acertos: reg.acertos, tempo: reg.tempo_segundos });
                     }
                 }
             }
 
-            // Converter para array e ordenar por pontuação desc, tempo asc
+            // Converter para array e ordenar por acertos desc, tempo asc
             const lista = Array.from(melhoresPorAluno.entries()).map(([aluno, dados]) => ({ aluno, ...dados }));
             lista.sort((a, b) => {
-                if (a.pontuacao !== b.pontuacao) return b.pontuacao - a.pontuacao;
+                if (a.acertos !== b.acertos) return b.acertos - a.acertos;
                 return a.tempo - b.tempo;
             });
 
-            // Encontrar posição do aluno atual
-            const minhaPontuacao = Math.floor(pontos);
+            const meusAcertos = proximo - 1;
             const meuTempo = Math.floor((Date.now() - tempoInicio) / 1000);
             let posicao = 1;
             for (const item of lista) {
-                if (item.pontuacao > minhaPontuacao ||
-                    (item.pontuacao === minhaPontuacao && item.tempo < meuTempo)) {
+                if (item.acertos > meusAcertos ||
+                    (item.acertos === meusAcertos && item.tempo < meuTempo)) {
                     posicao++;
                 } else {
                     break;
