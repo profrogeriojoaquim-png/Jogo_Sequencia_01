@@ -3,13 +3,16 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
-    <title>Saci Sabido - Sequência Numérica (1 a 25)</title>
-    <script src="https://cdn.tailwindcss.com"></script>
-    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+    <title>Sequência Numérica - Saci Sabido</title>
     <style>
-        * { margin: 0; padding: 0; box-sizing: border-box; user-select: none; }
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+            user-select: none;
+        }
         body {
-            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            font-family: 'Segoe UI', system-ui, sans-serif;
             background: linear-gradient(135deg, #1e3c72 0%, #2a5298 100%);
             min-height: 100vh;
             display: flex;
@@ -17,85 +20,88 @@
             align-items: center;
             padding: 20px;
         }
-        .game-container {
-            background: rgba(255, 255, 255, 0.95);
+        .container {
+            background: white;
             border-radius: 40px;
-            padding: 20px;
+            padding: 24px;
             max-width: 900px;
             width: 100%;
             box-shadow: 0 20px 40px rgba(0,0,0,0.2);
+            text-align: center;
         }
-        .game-header {
-            background: #f8fafc;
-            border-radius: 30px;
-            padding: 15px 25px;
-            margin-bottom: 25px;
+        h1 {
+            font-size: 28px;
+            margin-bottom: 8px;
+        }
+        .regras {
+            background: #f1f5f9;
+            border-radius: 20px;
+            padding: 12px;
+            margin: 20px 0;
+            font-size: 14px;
+            text-align: left;
+        }
+        .info-painel {
             display: flex;
             justify-content: space-between;
-            align-items: center;
-            flex-wrap: wrap;
+            background: #f8fafc;
+            border-radius: 30px;
+            padding: 12px 20px;
+            margin-bottom: 25px;
             gap: 15px;
+            flex-wrap: wrap;
         }
-        .header-card {
+        .info-card {
             background: white;
             border-radius: 20px;
-            padding: 8px 20px;
-            text-align: center;
-            flex: 1;
+            padding: 8px 16px;
             min-width: 100px;
-            box-shadow: 0 2px 4px rgba(0,0,0,0.05);
+            flex: 1;
         }
-        .header-card h3 {
+        .info-card span:first-child {
             font-size: 12px;
             text-transform: uppercase;
             color: #64748b;
-            margin-bottom: 5px;
+            display: block;
         }
-        .header-card .value {
+        .info-card span:last-child {
             font-size: 28px;
             font-weight: 800;
             color: #1e293b;
         }
-        .level-badge { background: #6366f1; }
-        .level-badge .value { color: white; }
-        .numbers-grid {
+        .grid-numeros {
             display: grid;
             grid-template-columns: repeat(5, 1fr);
             gap: 12px;
-            margin-bottom: 25px;
+            margin: 20px 0;
         }
-        .num-btn {
+        .numero {
             background: white;
             border: 2px solid #e2e8f0;
             border-radius: 20px;
             padding: 20px 0;
-            text-align: center;
             font-size: 28px;
             font-weight: 800;
             color: #334155;
             cursor: pointer;
-            transition: all 0.2s;
+            transition: 0.2s;
         }
-        .num-btn:hover:not(:disabled) {
-            transform: translateY(-2px);
-            border-color: #6366f1;
-        }
-        .num-btn.completed {
+        .numero.completo {
             background: #10b981 !important;
             border-color: #059669 !important;
             color: white !important;
             cursor: default;
-            opacity: 0.8;
+            opacity: 0.7;
         }
-        .num-btn.next {
+        .numero.destaque {
             background: #fef9c3;
             border-color: #eab308;
             color: #854d0e;
-            animation: pulse 1.2s infinite;
+            animation: pulse 1s infinite;
         }
         @keyframes pulse {
-            0% { transform: scale(1); box-shadow: 0 0 0 0 rgba(234,179,8,0.7); }
-            70% { transform: scale(1.02); box-shadow: 0 0 0 10px rgba(234,179,8,0); }
+            0% { transform: scale(1); box-shadow: 0 0 0 0 rgba(234,179,8,0.5); }
+            70% { transform: scale(1.02); box-shadow: 0 0 0 8px rgba(234,179,8,0); }
             100% { transform: scale(1); box-shadow: 0 0 0 0 rgba(234,179,8,0); }
         }
         button {
@@ -107,483 +113,280 @@
             font-weight: bold;
             border-radius: 40px;
             cursor: pointer;
+            margin: 5px;
         }
-        button:hover { background: #4f46e5; transform: scale(1.02); }
-        button:disabled { background: #94a3b8; cursor: not-allowed; transform: none; }
+        button:hover {
+            background: #4f46e5;
+            transform: scale(1.02);
+        }
         .feedback {
-            text-align: center;
-            margin-top: 15px;
-            font-size: 15px;
-            font-weight: 600;
-            min-height: 60px;
-            padding: 12px;
+            margin: 15px auto;
+            padding: 10px;
             border-radius: 40px;
+            font-weight: bold;
+            font-size: 15px;
         }
-        .feedback-success { background: #bbf7d0; color: #166534; }
-        .feedback-error { background: #fee2e2; color: #991b1b; }
-        .feedback-info { background: #e0e7ff; color: #3730a3; }
-        .rules-box {
-            background: #f1f5f9;
-            border-radius: 20px;
-            padding: 15px;
-            margin-top: 20px;
-            font-size: 13px;
-            text-align: center;
-            color: #475569;
-        }
-        @media (max-width: 640px) {
-            .num-btn { padding: 15px 0; font-size: 22px; }
-            .header-card .value { font-size: 22px; }
-        }
+        .feedback-acerto { background: #bbf7d0; color: #166534; }
+        .feedback-erro { background: #fee2e2; color: #991b1b; }
+        .hidden { display: none; }
     </style>
 </head>
 <body>
-<div class="game-container" id="game-container">
-    <!-- Tela inicial -->
-    <div id="start-screen">
-        <div class="text-center mb-6">
-            <h1 class="text-3xl font-black text-slate-800">🧩 Sequência Numérica</h1>
-            <p class="text-slate-500 mt-2">Encontre e clique nos números de 1 a 25 em ordem!</p>
-            <div class="rules-box">
-                <strong>📋 Como Jogar:</strong><br>
-                • Clique em "Iniciar Jogo".<br>
-                • Encontre o número 1, depois o 2, e assim por diante até o 25.<br>
-                • O tempo diminui a cada nível.<br>
-                • Cliques errados geram penalidade de 5 pontos.
-            </div>
+
+<div class="container" id="app">
+    <!-- TELA INICIAL -->
+    <div id="telaInicial">
+        <h1>🧩 Sequência Numérica</h1>
+        <p>Encontre e clique nos números de 1 a 25 em ordem!</p>
+        <div class="regras">
+            <strong>📋 Como jogar:</strong><br>
+            • Clique em "Iniciar Jogo".<br>
+            • Encontre o número 1, depois o 2, e assim por diante até o 25.<br>
+            • O tempo diminui a cada nível.<br>
+            • Cliques errados perdem 5 pontos.
         </div>
-        <button id="btn-start" class="w-full py-4 text-lg">🚀 INICIAR JOGO</button>
+        <button id="btnIniciar">🚀 INICIAR JOGO</button>
     </div>
 
-    <!-- Tela do jogo -->
-    <div id="game-screen" style="display: none;">
-        <div class="game-header">
-            <div class="header-card">
-                <h3>NÍVEL</h3>
-                <div class="value" id="level-value">1</div>
-            </div>
-            <div class="header-card">
-                <h3>PONTUAÇÃO</h3>
-                <div class="value" id="score-value">0</div>
-            </div>
-            <div class="header-card">
-                <h3>⏱️ TEMPO</h3>
-                <div class="value" id="timer-value">0</div>
-            </div>
+    <!-- TELA DO JOGO -->
+    <div id="telaJogo" class="hidden">
+        <div class="info-painel">
+            <div class="info-card"><span>NÍVEL</span><span id="nivel">1</span></div>
+            <div class="info-card"><span>PONTOS</span><span id="pontos">0</span></div>
+            <div class="info-card"><span>⏱️ TEMPO</span><span id="tempo">0</span></div>
         </div>
-        <div class="numbers-grid" id="numbers-grid"></div>
-        <div class="feedback" id="feedback"></div>
-        <div class="flex justify-center gap-4 mt-4">
-            <button id="btn-reset" class="bg-slate-700">🔄 REINICIAR</button>
-            <button id="btn-quit" class="bg-red-600">🚪 SAIR</button>
-        </div>
+        <div class="grid-numeros" id="grid"></div>
+        <div id="feedbackJogo" class="feedback"></div>
+        <button id="btnSair">🚪 SAIR</button>
     </div>
 
-    <!-- Tela final -->
-    <div id="end-screen" style="display: none;">
-        <div class="text-center py-8">
-            <div class="text-6xl mb-4">🏆</div>
-            <h2 class="text-3xl font-black text-slate-800">Fim de Jogo!</h2>
-            <div class="bg-indigo-50 p-6 rounded-3xl my-6">
-                <p class="text-lg font-bold text-indigo-800">Sua pontuação final:</p>
-                <p class="text-5xl font-black text-indigo-700" id="final-score">0</p>
-                <p class="text-sm text-slate-500 mt-2" id="final-level">Nível alcançado: 1</p>
-                <div id="ranking-container" class="mt-4 hidden">
-                    <p class="text-sm font-bold text-indigo-600">🏅 Posição na turma</p>
-                    <p class="text-2xl font-black" id="ranking-pos">--</p>
-                    <p class="text-xs" id="ranking-total">entre -- alunos</p>
-                </div>
-            </div>
-            <button id="btn-play-again" class="mt-4">🔄 JOGAR NOVAMENTE</button>
+    <!-- TELA FINAL -->
+    <div id="telaFinal" class="hidden">
+        <h1>🏆 Fim de jogo!</h1>
+        <div style="background: #eef2ff; padding: 20px; border-radius: 30px; margin: 20px 0;">
+            <p><strong>Pontuação final:</strong> <span id="finalPontos">0</span></p>
+            <p><strong>Nível alcançado:</strong> <span id="finalNivel">1</span></p>
         </div>
+        <button id="btnNovamente">🔄 JOGAR NOVAMENTE</button>
     </div>
 </div>
 
 <script>
-    console.log("🔍 Script iniciado...");
+    // ==================== CONFIGURAÇÕES ====================
+    const TOTAL_NUMEROS = 25;
+    const TEMPOS_POR_NIVEL = [60, 45, 35, 25, 20];  // nível 1=60s, 2=45s, etc.
+    const MULTIPLICADOR_PONTOS = [1, 1.5, 2, 2.5, 3];
+    const PONTOS_BASE = 10;
+    const PENALIDADE = 5;
 
-    // ======================== CONFIGURAÇÕES DO SUPABASE ========================
-    const SUPABASE_URL = 'https://qmcqffnawtfaenyziwsn.supabase.co';
-    const SUPABASE_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InFtY3FmZm5hd3RmYWVueXppd3NuIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzQxNTM5NTMsImV4cCI6MjA4OTcyOTk1M30._CjaNoeJeQp-8s8Jt-dk3bJfktdEV97R5LhLnWgYrNc';
-    const supabase = window.supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
+    // ==================== ESTADO GLOBAL ====================
+    let nivelAtual = 1;
+    let pontuacao = 0;
+    let proximoNumero = 1;
+    let botoesNumeros = [];
+    let jogoAtivo = false;
+    let intervalo = null;
+    let tempoRestante = 0;
+    let errosRegistrados = [];
 
-    // ======================== PARÂMETROS DA URL ========================
-    const urlParams = new URLSearchParams(window.location.search);
-    const ALUNO_ID = urlParams.get('aluno_id');
-    const JOGO_ID = urlParams.get('jogo_id');
-    const TURMA_ID = urlParams.get('turma_id');
-    const MODO_TESTE = urlParams.get('modo_teste') === 'true';
+    // ==================== ELEMENTOS DOM ====================
+    const telaInicial = document.getElementById('telaInicial');
+    const telaJogo = document.getElementById('telaJogo');
+    const telaFinal = document.getElementById('telaFinal');
+    const grid = document.getElementById('grid');
+    const spanNivel = document.getElementById('nivel');
+    const spanPontos = document.getElementById('pontos');
+    const spanTempo = document.getElementById('tempo');
+    const feedbackDiv = document.getElementById('feedbackJogo');
 
-    console.log("Parâmetros:", { ALUNO_ID, JOGO_ID, TURMA_ID, MODO_TESTE });
-
-    // ======================== CONFIGURAÇÕES DO JOGO ========================
-    const TOTAL_NUMBERS = 25;
-    const LEVEL_TIMES = [60, 45, 35, 25, 20];
-    const LEVEL_MULTIPLIERS = [1, 1.5, 2, 2.5, 3];
-    const BASE_POINTS = 10;
-    const PENALTY = 5;
-
-    // ======================== ESTADO DO JOGO ========================
-    let currentLevel = 1;
-    let currentScore = 0;
-    let nextNumberToFind = 1;
-    let numbersGridItems = [];
-    let gameActive = false;
-    let timerInterval = null;
-    let timeLeft = 0;
-    let errosDetalhados = [];
-
-    // ======================== FUNÇÕES DO JOGO ========================
-    function shuffleArray(arr) {
-        for (let i = arr.length - 1; i > 0; i--) {
+    // ==================== FUNÇÕES AUXILIARES ====================
+    function embaralhar(lista) {
+        for (let i = lista.length - 1; i > 0; i--) {
             const j = Math.floor(Math.random() * (i + 1));
-            [arr[i], arr[j]] = [arr[j], arr[i]];
+            [lista[i], lista[j]] = [lista[j], lista[i]];
         }
-        return arr;
+        return lista;
     }
 
-    function renderGrid() {
-        const grid = document.getElementById('numbers-grid');
-        if (!grid) return;
-        grid.innerHTML = '';
-        let numbersList = [];
-        for (let i = 1; i <= TOTAL_NUMBERS; i++) numbersList.push(i);
-        numbersList = shuffleArray(numbersList);
-        numbersGridItems = [];
-        numbersList.forEach(num => {
-            const btn = document.createElement('button');
-            btn.textContent = num;
-            btn.classList.add('num-btn');
-            btn.dataset.number = num;
-            btn.onclick = () => handleNumberClick(num);
-            grid.appendChild(btn);
-            numbersGridItems.push(btn);
-        });
-        highlightNextNumber();
+    function atualizarUI() {
+        spanNivel.textContent = nivelAtual;
+        spanPontos.textContent = pontuacao;
     }
 
-    function highlightNextNumber() {
-        numbersGridItems.forEach(btn => {
-            const num = parseInt(btn.dataset.number);
-            btn.classList.remove('next');
-            if (num === nextNumberToFind && !btn.classList.contains('completed')) {
-                btn.classList.add('next');
+    function obterTempoNivel() {
+        const idx = Math.min(nivelAtual - 1, TEMPOS_POR_NIVEL.length - 1);
+        return TEMPOS_POR_NIVEL[idx];
+    }
+
+    function obterMultiplicador() {
+        const idx = Math.min(nivelAtual - 1, MULTIPLICADOR_PONTOS.length - 1);
+        return MULTIPLICADOR_PONTOS[idx];
+    }
+
+    function mostrarFeedback(mensagem, tipo) {
+        feedbackDiv.textContent = mensagem;
+        feedbackDiv.className = 'feedback';
+        if (tipo === 'acerto') feedbackDiv.classList.add('feedback-acerto');
+        else if (tipo === 'erro') feedbackDiv.classList.add('feedback-erro');
+        setTimeout(() => {
+            if (feedbackDiv.textContent === mensagem) {
+                feedbackDiv.textContent = '';
+                feedbackDiv.className = 'feedback';
             }
-        });
+        }, 1800);
     }
 
-    function markNumberAsCompleted(number) {
-        const btn = numbersGridItems.find(b => parseInt(b.dataset.number) === number);
-        if (btn) {
-            btn.classList.add('completed');
-            btn.classList.remove('next');
-        }
-        highlightNextNumber();
-    }
-
-    function updateScoreUI() {
-        const el = document.getElementById('score-value');
-        if (el) el.textContent = currentScore;
-    }
-
-    function updateLevelUI() {
-        const el = document.getElementById('level-value');
-        if (el) el.textContent = currentLevel;
-    }
-
-    function getTimeForLevel(level) {
-        const idx = Math.min(level - 1, LEVEL_TIMES.length - 1);
-        return LEVEL_TIMES[idx];
-    }
-
-    function getMultiplierForLevel(level) {
-        const idx = Math.min(level - 1, LEVEL_MULTIPLIERS.length - 1);
-        return LEVEL_MULTIPLIERS[idx];
-    }
-
-    function startTimer() {
-        if (timerInterval) clearInterval(timerInterval);
-        timerInterval = setInterval(() => {
-            if (!gameActive) return;
-            if (timeLeft <= 0) {
-                clearInterval(timerInterval);
-                timerInterval = null;
-                gameActive = false;
-                showFeedback("⏰ TEMPO ESGOTADO! Fim de jogo.", "error");
-                playSound('gameover');
-                endGame();
+    function iniciarCronometro() {
+        if (intervalo) clearInterval(intervalo);
+        intervalo = setInterval(() => {
+            if (!jogoAtivo) return;
+            if (tempoRestante <= 0) {
+                clearInterval(intervalo);
+                intervalo = null;
+                jogoAtivo = false;
+                mostrarFeedback("⏰ TEMPO ESGOTADO!", "erro");
+                finalizarJogo();
             } else {
-                timeLeft--;
-                const timerEl = document.getElementById('timer-value');
-                if (timerEl) timerEl.textContent = timeLeft;
-                if (timeLeft <= 10 && timerEl) timerEl.style.color = '#dc2626';
+                tempoRestante--;
+                spanTempo.textContent = tempoRestante;
+                if (tempoRestante <= 10) spanTempo.style.color = '#dc2626';
+                else spanTempo.style.color = '';
             }
         }, 1000);
     }
 
-    function resetTimerForLevel() {
-        if (timerInterval) clearInterval(timerInterval);
-        timeLeft = getTimeForLevel(currentLevel);
-        const timerEl = document.getElementById('timer-value');
-        if (timerEl) {
-            timerEl.textContent = timeLeft;
-            timerEl.style.color = '';
-        }
-        startTimer();
+    function reiniciarRodada() {
+        tempoRestante = obterTempoNivel();
+        spanTempo.textContent = tempoRestante;
+        spanTempo.style.color = '';
+        if (intervalo) clearInterval(intervalo);
+        iniciarCronometro();
     }
 
-    function showFeedback(msg, type) {
-        const fb = document.getElementById('feedback');
-        if (!fb) return;
-        fb.innerHTML = msg;
-        fb.classList.remove('feedback-success', 'feedback-error', 'feedback-info');
-        if (type === 'success') fb.classList.add('feedback-success');
-        else if (type === 'error') fb.classList.add('feedback-error');
-        else fb.classList.add('feedback-info');
-        setTimeout(() => {
-            if (fb.innerHTML === msg) {
-                fb.innerHTML = '';
-                fb.classList.remove('feedback-success', 'feedback-error', 'feedback-info');
+    // ==================== LÓGICA DO GRID ====================
+    function gerarGrid() {
+        grid.innerHTML = '';
+        const numeros = [];
+        for (let i = 1; i <= TOTAL_NUMEROS; i++) numeros.push(i);
+        const ordenado = embaralhar([...numeros]);
+        botoesNumeros = [];
+        ordenado.forEach(num => {
+            const btn = document.createElement('div');
+            btn.className = 'numero';
+            btn.textContent = num;
+            btn.dataset.num = num;
+            btn.addEventListener('click', () => clicarNumero(num));
+            grid.appendChild(btn);
+            botoesNumeros.push(btn);
+        });
+        destacarProximo();
+    }
+
+    function destacarProximo() {
+        botoesNumeros.forEach(btn => {
+            const num = parseInt(btn.dataset.num);
+            btn.classList.remove('destaque');
+            if (num === proximoNumero && !btn.classList.contains('completo')) {
+                btn.classList.add('destaque');
             }
-        }, 2000);
+        });
     }
 
-    // ======================== ÁUDIO ========================
-    let audioCtx = null;
-    function playSound(type) {
-        if (!audioCtx) audioCtx = new (window.AudioContext || window.webkitAudioContext)();
-        const now = audioCtx.currentTime;
-        const gain = audioCtx.createGain();
-        gain.connect(audioCtx.destination);
-        const osc = audioCtx.createOscillator();
-        osc.connect(gain);
-        osc.type = 'sine';
-        if (type === 'correct') {
-            osc.frequency.value = 880;
-            gain.gain.setValueAtTime(0.3, now);
-            gain.gain.exponentialRampToValueAtTime(0.0001, now + 0.5);
-            osc.start(now);
-            osc.stop(now + 0.3);
-        } else if (type === 'wrong') {
-            osc.frequency.value = 220;
-            gain.gain.setValueAtTime(0.25, now);
-            gain.gain.exponentialRampToValueAtTime(0.0001, now + 0.4);
-            osc.start(now);
-            osc.stop(now + 0.25);
-        } else if (type === 'levelup') {
-            osc.frequency.value = 523.25;
-            gain.gain.setValueAtTime(0.2, now);
-            gain.gain.exponentialRampToValueAtTime(0.0001, now + 0.6);
-            osc.start(now);
-            osc.stop(now + 0.4);
-            const osc2 = audioCtx.createOscillator();
-            osc2.connect(gain);
-            osc2.frequency.value = 659.25;
-            osc2.start(now + 0.15);
-            osc2.stop(now + 0.55);
-        } else if (type === 'gameover') {
-            [523.25, 493.88, 440, 392].forEach((freq, i) => {
-                const o = audioCtx.createOscillator();
-                const g = audioCtx.createGain();
-                o.connect(g);
-                g.connect(audioCtx.destination);
-                o.frequency.value = freq;
-                g.gain.setValueAtTime(0.15, now + i*0.1);
-                g.gain.exponentialRampToValueAtTime(0.0001, now + i*0.1 + 0.6);
-                o.start(now + i*0.1);
-                o.stop(now + i*0.1 + 0.5);
-            });
+    function marcarComoCompleto(numero) {
+        const btn = botoesNumeros.find(b => parseInt(b.dataset.num) === numero);
+        if (btn) {
+            btn.classList.add('completo');
+            btn.classList.remove('destaque');
         }
     }
 
-    // ======================== LÓGICA DE CLIQUE ========================
-    function handleNumberClick(clickedNumber) {
-        if (!gameActive) return;
-        if (clickedNumber === nextNumberToFind) {
-            playSound('correct');
-            const multiplier = getMultiplierForLevel(currentLevel);
-            const points = Math.floor(BASE_POINTS * multiplier);
-            currentScore += points;
-            updateScoreUI();
-            markNumberAsCompleted(clickedNumber);
-            showFeedback(`✅ Correto! +${points} pontos`, "success");
-            nextNumberToFind++;
-            if (nextNumberToFind > TOTAL_NUMBERS) {
-                currentLevel++;
-                if (currentLevel > 15) {
-                    endGame();
-                    return;
-                }
-                nextNumberToFind = 1;
-                renderGrid();
-                updateLevelUI();
-                resetTimerForLevel();
-                showFeedback(`🚀 Avançou para o NÍVEL ${currentLevel}!`, "success");
-                playSound('levelup');
+    function clicarNumero(numeroClicado) {
+        if (!jogoAtivo) return;
+
+        if (numeroClicado === proximoNumero) {
+            // ACERTOU
+            const ganho = Math.floor(PONTOS_BASE * obterMultiplicador());
+            pontuacao += ganho;
+            atualizarUI();
+            marcarComoCompleto(numeroClicado);
+            mostrarFeedback(`✅ Correto! +${ganho} pontos`, 'acerto');
+            proximoNumero++;
+
+            if (proximoNumero > TOTAL_NUMEROS) {
+                // COMPLETOU O NÍVEL
+                nivelAtual++;
+                proximoNumero = 1;
+                pontuacao = Math.floor(pontuacao); // mantém inteiro
+                atualizarUI();
+                gerarGrid();
+                reiniciarRodada();
+                mostrarFeedback(`🚀 AVANÇOU PARA O NÍVEL ${nivelAtual}!`, 'acerto');
                 return;
             }
-            // Efeito visual
-            const btn = numbersGridItems.find(b => parseInt(b.dataset.number) === clickedNumber);
-            if (btn) {
-                btn.classList.add('correct-flash');
-                setTimeout(() => btn.classList.remove('correct-flash'), 300);
-            }
+            destacarProximo();
         } else {
-            playSound('wrong');
-            errosDetalhados.push({ numeroEsperado: nextNumberToFind, numeroClicado: clickedNumber });
-            currentScore = Math.max(0, currentScore - PENALTY);
-            updateScoreUI();
-            showFeedback(`❌ Errado! Próximo era ${nextNumberToFind}. Penalidade: -${PENALTY}`, "error");
-            const wrongBtn = numbersGridItems.find(b => parseInt(b.dataset.number) === clickedNumber);
-            if (wrongBtn) {
-                wrongBtn.style.animation = 'shake 0.5s';
-                setTimeout(() => wrongBtn.style.animation = '', 500);
-            }
-        }
-    }
-
-    // ======================== INICIAR JOGO ========================
-    function initGame() {
-        console.log("🚀 initGame chamada!");
-        currentLevel = 1;
-        currentScore = 0;
-        nextNumberToFind = 1;
-        gameActive = true;
-        errosDetalhados = [];
-        updateScoreUI();
-        updateLevelUI();
-        renderGrid();
-        resetTimerForLevel();
-        const fb = document.getElementById('feedback');
-        if (fb) fb.innerHTML = '';
-        console.log("✅ Jogo iniciado com sucesso!");
-    }
-
-    // ======================== SALVAMENTO E RANKING ========================
-    async function salvarResultado() {
-        if (MODO_TESTE || !ALUNO_ID || !JOGO_ID) {
-            console.log("Modo teste ou sem parâmetros. Não salvando.");
-            return;
-        }
-        const totalAcertos = nextNumberToFind - 1;
-        const dados = {
-            aluno_id: ALUNO_ID,
-            jogo_id: JOGO_ID,
-            turma_id: TURMA_ID,
-            acertos: totalAcertos,
-            erros: errosDetalhados.length,
-            pontuacao: currentScore,
-            nivel_atingido: currentLevel,
-            tempo_total: getTimeForLevel(1) - timeLeft,
-            detalhes_erros: errosDetalhados,
-            habilidade_bncc: 'EF07MA14'
-        };
-        try {
-            const { error } = await supabase.from('resultados').insert([dados]);
-            if (error) console.error("Erro ao salvar:", error);
-            else console.log("Resultado salvo!");
-        } catch(e) { console.error(e); }
-    }
-
-    async function buscarRanking() {
-        if (!TURMA_ID || MODO_TESTE || !JOGO_ID) return null;
-        try {
-            const { data, error } = await supabase
-                .from('resultados')
-                .select('pontuacao')
-                .eq('turma_id', TURMA_ID)
-                .eq('jogo_id', JOGO_ID);
-            if (error) throw error;
-            if (!data || data.length === 0) return null;
-            let posicao = 1;
-            data.forEach(item => {
-                if (item.pontuacao > currentScore) posicao++;
+            // ERROU
+            errosRegistrados.push({
+                esperado: proximoNumero,
+                clicado: numeroClicado
             });
-            return { posicao, total: data.length };
-        } catch(e) { console.error(e); return null; }
-    }
-
-    async function endGame() {
-        gameActive = false;
-        if (timerInterval) clearInterval(timerInterval);
-        timerInterval = null;
-        const finalScoreSpan = document.getElementById('final-score');
-        const finalLevelSpan = document.getElementById('final-level');
-        if (finalScoreSpan) finalScoreSpan.textContent = currentScore;
-        if (finalLevelSpan) finalLevelSpan.textContent = `Nível alcançado: ${currentLevel-1}`;
-        
-        await salvarResultado();
-        
-        if (TURMA_ID && !MODO_TESTE && JOGO_ID) {
-            const ranking = await buscarRanking();
-            if (ranking) {
-                const rankingPos = document.getElementById('ranking-pos');
-                const rankingTotal = document.getElementById('ranking-total');
-                const rankingContainer = document.getElementById('ranking-container');
-                if (rankingPos) rankingPos.textContent = `${ranking.posicao}º`;
-                if (rankingTotal) rankingTotal.textContent = `entre ${ranking.total} alunos`;
-                if (rankingContainer) rankingContainer.classList.remove('hidden');
-            }
+            pontuacao = Math.max(0, pontuacao - PENALIDADE);
+            atualizarUI();
+            mostrarFeedback(`❌ Errado! O próximo era ${proximoNumero}. -${PENALIDADE} pontos`, 'erro');
         }
-        const gameScreen = document.getElementById('game-screen');
-        const endScreen = document.getElementById('end-screen');
-        if (gameScreen) gameScreen.style.display = 'none';
-        if (endScreen) endScreen.style.display = 'block';
     }
 
-    function fullRestart() {
-        if (timerInterval) clearInterval(timerInterval);
-        gameActive = false;
-        const startScreen = document.getElementById('start-screen');
-        const gameScreen = document.getElementById('game-screen');
-        const endScreen = document.getElementById('end-screen');
-        const rankingContainer = document.getElementById('ranking-container');
-        if (startScreen) startScreen.style.display = 'block';
-        if (gameScreen) gameScreen.style.display = 'none';
-        if (endScreen) endScreen.style.display = 'none';
-        if (rankingContainer) rankingContainer.classList.add('hidden');
+    // ==================== CONTROLE DO JOGO ====================
+    function iniciarJogo() {
+        nivelAtual = 1;
+        pontuacao = 0;
+        proximoNumero = 1;
+        jogoAtivo = true;
+        errosRegistrados = [];
+        atualizarUI();
+        gerarGrid();
+        tempoRestante = obterTempoNivel();
+        spanTempo.textContent = tempoRestante;
+        if (intervalo) clearInterval(intervalo);
+        iniciarCronometro();
+        // Trocar telas
+        telaInicial.classList.add('hidden');
+        telaJogo.classList.remove('hidden');
+        telaFinal.classList.add('hidden');
+        feedbackDiv.textContent = '';
     }
 
-    function quitGame() {
-        if (timerInterval) clearInterval(timerInterval);
-        gameActive = false;
-        const startScreen = document.getElementById('start-screen');
-        const gameScreen = document.getElementById('game-screen');
-        const endScreen = document.getElementById('end-screen');
-        if (startScreen) startScreen.style.display = 'block';
-        if (gameScreen) gameScreen.style.display = 'none';
-        if (endScreen) endScreen.style.display = 'none';
+    function finalizarJogo() {
+        jogoAtivo = false;
+        if (intervalo) clearInterval(intervalo);
+        intervalo = null;
+        document.getElementById('finalPontos').textContent = pontuacao;
+        document.getElementById('finalNivel').textContent = nivelAtual;
+        telaJogo.classList.add('hidden');
+        telaFinal.classList.remove('hidden');
     }
 
-    // ======================== EVENTOS ========================
-    document.addEventListener('DOMContentLoaded', () => {
-        console.log("📄 DOM carregado, configurando eventos...");
-        const btnStart = document.getElementById('btn-start');
-        const btnReset = document.getElementById('btn-reset');
-        const btnQuit = document.getElementById('btn-quit');
-        const btnPlayAgain = document.getElementById('btn-play-again');
+    function sairJogo() {
+        jogoAtivo = false;
+        if (intervalo) clearInterval(intervalo);
+        intervalo = null;
+        telaJogo.classList.add('hidden');
+        telaInicial.classList.remove('hidden');
+        telaFinal.classList.add('hidden');
+    }
 
-        if (btnStart) {
-            btnStart.addEventListener('click', () => {
-                console.log("🖱️ Botão INICIAR clicado!");
-                const startScreen = document.getElementById('start-screen');
-                const gameScreen = document.getElementById('game-screen');
-                if (startScreen) startScreen.style.display = 'none';
-                if (gameScreen) gameScreen.style.display = 'block';
-                initGame();
-            });
-        } else {
-            console.error("❌ Botão 'btn-start' não encontrado!");
-        }
-        if (btnReset) btnReset.addEventListener('click', () => { if (gameActive) initGame(); });
-        if (btnQuit) btnQuit.addEventListener('click', quitGame);
-        if (btnPlayAgain) btnPlayAgain.addEventListener('click', fullRestart);
+    function reiniciarCompleto() {
+        sairJogo();
+        iniciarJogo();
+    }
+
+    // ==================== EVENTOS ====================
+    document.getElementById('btnIniciar').addEventListener('click', iniciarJogo);
+    document.getElementById('btnSair').addEventListener('click', sairJogo);
+    document.getElementById('btnNovamente').addEventListener('click', () => {
+        sairJogo();
+        iniciarJogo();
     });
-
-    // Ativar áudio no primeiro clique
-    document.body.addEventListener('click', () => {
-        if (audioCtx && audioCtx.state === 'suspended') audioCtx.resume();
-    }, { once: true });
 </script>
 </body>
 </html>
