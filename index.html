@@ -4,13 +4,10 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
     <title>Sequência Numérica - Saci Sabido</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
     <style>
-        * {
-            margin: 0;
-            padding: 0;
-            box-sizing: border-box;
-            user-select: none;
-        }
+        * { margin: 0; padding: 0; box-sizing: border-box; user-select: none; }
         body {
             font-family: 'Segoe UI', system-ui, sans-serif;
             background: linear-gradient(135deg, #1e3c72 0%, #2a5298 100%);
@@ -29,10 +26,7 @@
             box-shadow: 0 20px 40px rgba(0,0,0,0.2);
             text-align: center;
         }
-        h1 {
-            font-size: 28px;
-            margin-bottom: 8px;
-        }
+        h1 { font-size: 28px; margin-bottom: 8px; }
         .regras {
             background: #f1f5f9;
             border-radius: 20px;
@@ -115,10 +109,7 @@
             cursor: pointer;
             margin: 5px;
         }
-        button:hover {
-            background: #4f46e5;
-            transform: scale(1.02);
-        }
+        button:hover { background: #4f46e5; transform: scale(1.02); }
         .feedback {
             margin: 15px auto;
             padding: 10px;
@@ -128,6 +119,7 @@
         }
         .feedback-acerto { background: #bbf7d0; color: #166534; }
         .feedback-erro { background: #fee2e2; color: #991b1b; }
+        .feedback-info { background: #e0e7ff; color: #3730a3; }
         .hidden { display: none; }
     </style>
 </head>
@@ -141,11 +133,12 @@
         <div class="regras">
             <strong>📋 Como jogar:</strong><br>
             • Clique em "Iniciar Jogo".<br>
-            • Encontre o número 1, depois o 2, e assim por diante até o 25.<br>
+            • Encontre o número 1, depois o 2, até o 25.<br>
             • O tempo diminui a cada nível.<br>
             • Cliques errados perdem 5 pontos.
         </div>
         <button id="btnIniciar">🚀 INICIAR JOGO</button>
+        <div id="statusConexao" class="text-sm text-slate-500 mt-3"></div>
     </div>
 
     <!-- TELA DO JOGO -->
@@ -166,15 +159,42 @@
         <div style="background: #eef2ff; padding: 20px; border-radius: 30px; margin: 20px 0;">
             <p><strong>Pontuação final:</strong> <span id="finalPontos">0</span></p>
             <p><strong>Nível alcançado:</strong> <span id="finalNivel">1</span></p>
+            <p><strong>Acertos:</strong> <span id="finalAcertos">0</span> / 25</p>
+            <p><strong>Erros:</strong> <span id="finalErros">0</span></p>
+            <div id="rankingInfo" class="hidden mt-3 pt-3 border-t border-indigo-200">
+                <p class="font-bold text-indigo-700">🏅 Posição na turma</p>
+                <p class="text-2xl font-black" id="rankingPos">--</p>
+                <p class="text-xs" id="rankingTotal"></p>
+            </div>
         </div>
         <button id="btnNovamente">🔄 JOGAR NOVAMENTE</button>
     </div>
 </div>
 
 <script>
-    // ==================== CONFIGURAÇÕES ====================
+    // ==================== SUPABASE ====================
+    const SUPABASE_URL = 'https://qmcqffnawtfaenyziwsn.supabase.co';
+    const SUPABASE_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InFtY3FmZm5hd3RmYWVueXppd3NuIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzQxNTM5NTMsImV4cCI6MjA4OTcyOTk1M30._CjaNoeJeQp-8s8Jt-dk3bJfktdEV97R5LhLnWgYrNc';
+    const supabase = window.supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
+
+    // ==================== PARÂMETROS DA URL ====================
+    const urlParams = new URLSearchParams(window.location.search);
+    const ALUNO_ID = urlParams.get('aluno_id');
+    const JOGO_ID = urlParams.get('jogo_id');
+    const TURMA_ID = urlParams.get('turma_id');
+    const MODO_TESTE = urlParams.get('modo_teste') === 'true';
+
+    // Exibir status da conexão
+    const statusDiv = document.getElementById('statusConexao');
+    if (statusDiv) {
+        if (MODO_TESTE) statusDiv.innerHTML = '🔧 Modo demonstração - dados não serão salvos';
+        else if (!ALUNO_ID || !JOGO_ID) statusDiv.innerHTML = '⚠️ Link incompleto - resultado não será salvo (faltam parâmetros)';
+        else statusDiv.innerHTML = '✅ Conectado - pontuação será registrada';
+    }
+
+    // ==================== CONFIGURAÇÕES DO JOGO ====================
     const TOTAL_NUMEROS = 25;
-    const TEMPOS_POR_NIVEL = [60, 45, 35, 25, 20];  // nível 1=60s, 2=45s, etc.
+    const TEMPOS_POR_NIVEL = [60, 45, 35, 25, 20];
     const MULTIPLICADOR_PONTOS = [1, 1.5, 2, 2.5, 3];
     const PONTOS_BASE = 10;
     const PENALIDADE = 5;
@@ -187,7 +207,9 @@
     let jogoAtivo = false;
     let intervalo = null;
     let tempoRestante = 0;
-    let errosRegistrados = [];
+    let errosRegistrados = [];   // guarda { esperado, clicado }
+    let tempoInicio = null;
+    let tempoFinal = null;
 
     // ==================== ELEMENTOS DOM ====================
     const telaInicial = document.getElementById('telaInicial');
@@ -210,7 +232,7 @@
 
     function atualizarUI() {
         spanNivel.textContent = nivelAtual;
-        spanPontos.textContent = pontuacao;
+        spanPontos.textContent = Math.floor(pontuacao);
     }
 
     function obterTempoNivel() {
@@ -224,10 +246,12 @@
     }
 
     function mostrarFeedback(mensagem, tipo) {
+        if (!feedbackDiv) return;
         feedbackDiv.textContent = mensagem;
         feedbackDiv.className = 'feedback';
         if (tipo === 'acerto') feedbackDiv.classList.add('feedback-acerto');
         else if (tipo === 'erro') feedbackDiv.classList.add('feedback-erro');
+        else feedbackDiv.classList.add('feedback-info');
         setTimeout(() => {
             if (feedbackDiv.textContent === mensagem) {
                 feedbackDiv.textContent = '';
@@ -316,7 +340,7 @@
                 // COMPLETOU O NÍVEL
                 nivelAtual++;
                 proximoNumero = 1;
-                pontuacao = Math.floor(pontuacao); // mantém inteiro
+                pontuacao = Math.floor(pontuacao);
                 atualizarUI();
                 gerarGrid();
                 reiniciarRodada();
@@ -336,6 +360,97 @@
         }
     }
 
+    // ==================== SALVAR RESULTADO NO SUPABASE ====================
+    async function salvarResultado() {
+        if (MODO_TESTE) {
+            console.log("Modo teste - não salvar");
+            return;
+        }
+        if (!ALUNO_ID || !JOGO_ID) {
+            console.warn("Faltam parâmetros aluno_id ou jogo_id");
+            mostrarFeedback("⚠️ Resultado não salvo: link incompleto", "info");
+            return;
+        }
+
+        const totalAcertos = proximoNumero - 1;  // números acertados (1 a 25)
+        const totalErros = errosRegistrados.length;
+        const tempoGasto = obterTempoNivel() - tempoRestante;  // tempo decorrido
+
+        const dados = {
+            aluno_id: ALUNO_ID,
+            jogo_id: JOGO_ID,
+            turma_id: TURMA_ID,
+            acertos: totalAcertos,
+            erros: totalErros,
+            tempo_segundos: tempoGasto,
+            total_questoes: TOTAL_NUMEROS,
+            habilidade_bncc: 'EF07MA14'
+        };
+
+        // Se a tabela tiver coluna pontuacao, pode adicionar (opcional)
+        // dados.pontuacao = Math.floor(pontuacao);
+
+        // Se quiser salvar detalhes dos erros em JSON (se existir a coluna detalhes_erros)
+        if (totalErros > 0) {
+            dados.detalhes_erros = errosRegistrados;
+        }
+
+        console.log("📤 Enviando para Supabase:", dados);
+
+        try {
+            const { data, error } = await supabase
+                .from('resultados')
+                .insert([dados])
+                .select();
+
+            if (error) {
+                console.error("❌ Erro ao salvar:", error);
+                mostrarFeedback(`❌ Erro ao salvar: ${error.message}`, "erro");
+            } else {
+                console.log("✅ Resultado salvo com sucesso!", data);
+                mostrarFeedback("✅ Pontuação registrada!", "acerto");
+                // Buscar ranking
+                await buscarRanking();
+            }
+        } catch (err) {
+            console.error("❌ Erro de rede:", err);
+            mostrarFeedback("❌ Falha na conexão com o servidor", "erro");
+        }
+    }
+
+    async function buscarRanking() {
+        if (!TURMA_ID || !JOGO_ID || MODO_TESTE) return;
+        try {
+            const { data, error } = await supabase
+                .from('resultados')
+                .select('acertos, tempo_segundos, aluno_id')
+                .eq('turma_id', TURMA_ID)
+                .eq('jogo_id', JOGO_ID);
+
+            if (error) throw error;
+            if (!data || data.length === 0) return;
+
+            // Calcula posição com base nos acertos (maior) e tempo (menor)
+            const minhaPontuacao = proximoNumero - 1;
+            let posicao = 1;
+            data.forEach(item => {
+                if (item.acertos > minhaPontuacao) posicao++;
+                else if (item.acertos === minhaPontuacao && item.tempo_segundos < (obterTempoNivel() - tempoRestante)) posicao++;
+            });
+
+            const rankingDiv = document.getElementById('rankingInfo');
+            const rankingPos = document.getElementById('rankingPos');
+            const rankingTotal = document.getElementById('rankingTotal');
+            if (rankingDiv && rankingPos && rankingTotal) {
+                rankingPos.textContent = `${posicao}º`;
+                rankingTotal.textContent = `entre ${data.length} alunos`;
+                rankingDiv.classList.remove('hidden');
+            }
+        } catch (e) {
+            console.error("Erro ao buscar ranking:", e);
+        }
+    }
+
     // ==================== CONTROLE DO JOGO ====================
     function iniciarJogo() {
         nivelAtual = 1;
@@ -343,27 +458,37 @@
         proximoNumero = 1;
         jogoAtivo = true;
         errosRegistrados = [];
+        tempoInicio = Date.now();
         atualizarUI();
         gerarGrid();
         tempoRestante = obterTempoNivel();
         spanTempo.textContent = tempoRestante;
         if (intervalo) clearInterval(intervalo);
         iniciarCronometro();
-        // Trocar telas
+
         telaInicial.classList.add('hidden');
         telaJogo.classList.remove('hidden');
         telaFinal.classList.add('hidden');
-        feedbackDiv.textContent = '';
+        if (feedbackDiv) feedbackDiv.textContent = '';
     }
 
-    function finalizarJogo() {
+    async function finalizarJogo() {
         jogoAtivo = false;
         if (intervalo) clearInterval(intervalo);
         intervalo = null;
-        document.getElementById('finalPontos').textContent = pontuacao;
+        tempoFinal = Date.now();
+
+        // Exibir estatísticas na tela final
+        document.getElementById('finalPontos').textContent = Math.floor(pontuacao);
         document.getElementById('finalNivel').textContent = nivelAtual;
+        document.getElementById('finalAcertos').textContent = proximoNumero - 1;
+        document.getElementById('finalErros').textContent = errosRegistrados.length;
+
         telaJogo.classList.add('hidden');
         telaFinal.classList.remove('hidden');
+
+        // Salvar resultado NO SUPABASE (somente se não for modo teste)
+        await salvarResultado();
     }
 
     function sairJogo() {
@@ -381,11 +506,17 @@
     }
 
     // ==================== EVENTOS ====================
-    document.getElementById('btnIniciar').addEventListener('click', iniciarJogo);
-    document.getElementById('btnSair').addEventListener('click', sairJogo);
-    document.getElementById('btnNovamente').addEventListener('click', () => {
-        sairJogo();
-        iniciarJogo();
+    document.addEventListener('DOMContentLoaded', () => {
+        const btnIniciar = document.getElementById('btnIniciar');
+        const btnSair = document.getElementById('btnSair');
+        const btnNovamente = document.getElementById('btnNovamente');
+
+        if (btnIniciar) btnIniciar.addEventListener('click', iniciarJogo);
+        if (btnSair) btnSair.addEventListener('click', sairJogo);
+        if (btnNovamente) btnNovamente.addEventListener('click', () => {
+            sairJogo();
+            iniciarJogo();
+        });
     });
 </script>
 </body>
