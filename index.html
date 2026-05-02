@@ -148,10 +148,8 @@
                 <strong>📋 Como Jogar:</strong><br>
                 • Clique em "Iniciar Jogo".<br>
                 • Encontre o número 1, depois o 2, e assim por diante até o 25.<br>
-                • O tempo diminui a cada nível (Nível 1: 60s, Nível 2: 45s, Nível 3: 35s, Nível 4: 25s, Nível 5+: 20s).<br>
-                • Sua pontuação é multiplicada conforme o nível!<br>
-                • Cliques errados geram penalidade de 5 pontos.<br>
-                • ⭐ Dica: o próximo número fica destacado em amarelo!
+                • O tempo diminui a cada nível.<br>
+                • Cliques errados geram penalidade de 5 pontos.
             </div>
         </div>
         <button id="btn-start" class="w-full py-4 text-lg">🚀 INICIAR JOGO</button>
@@ -202,6 +200,8 @@
 </div>
 
 <script>
+    console.log("🔍 Script iniciado...");
+
     // ======================== CONFIGURAÇÕES DO SUPABASE ========================
     const SUPABASE_URL = 'https://qmcqffnawtfaenyziwsn.supabase.co';
     const SUPABASE_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InFtY3FmZm5hd3RmYWVueXppd3NuIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzQxNTM5NTMsImV4cCI6MjA4OTcyOTk1M30._CjaNoeJeQp-8s8Jt-dk3bJfktdEV97R5LhLnWgYrNc';
@@ -214,11 +214,11 @@
     const TURMA_ID = urlParams.get('turma_id');
     const MODO_TESTE = urlParams.get('modo_teste') === 'true';
 
-    // ======================== CONFIGURAÇÕES DO JOGO (CUSTOMIZÁVEIS) ========================
+    console.log("Parâmetros:", { ALUNO_ID, JOGO_ID, TURMA_ID, MODO_TESTE });
+
+    // ======================== CONFIGURAÇÕES DO JOGO ========================
     const TOTAL_NUMBERS = 25;
-    // Tempos para cada nível (índice 0 = nível 1, etc.)
     const LEVEL_TIMES = [60, 45, 35, 25, 20];
-    // Multiplicadores de pontuação para cada nível
     const LEVEL_MULTIPLIERS = [1, 1.5, 2, 2.5, 3];
     const BASE_POINTS = 10;
     const PENALTY = 5;
@@ -231,9 +231,9 @@
     let gameActive = false;
     let timerInterval = null;
     let timeLeft = 0;
-    let errosDetalhados = []; // Armazena { numeroEsperado, numeroClicado }
+    let errosDetalhados = [];
 
-    // ======================== FUNÇÕES AUXILIARES ========================
+    // ======================== FUNÇÕES DO JOGO ========================
     function shuffleArray(arr) {
         for (let i = arr.length - 1; i > 0; i--) {
             const j = Math.floor(Math.random() * (i + 1));
@@ -243,7 +243,9 @@
     }
 
     function renderGrid() {
-        numbersGrid.innerHTML = '';
+        const grid = document.getElementById('numbers-grid');
+        if (!grid) return;
+        grid.innerHTML = '';
         let numbersList = [];
         for (let i = 1; i <= TOTAL_NUMBERS; i++) numbersList.push(i);
         numbersList = shuffleArray(numbersList);
@@ -254,7 +256,7 @@
             btn.classList.add('num-btn');
             btn.dataset.number = num;
             btn.onclick = () => handleNumberClick(num);
-            numbersGrid.appendChild(btn);
+            grid.appendChild(btn);
             numbersGridItems.push(btn);
         });
         highlightNextNumber();
@@ -280,11 +282,13 @@
     }
 
     function updateScoreUI() {
-        document.getElementById('score-value').textContent = currentScore;
+        const el = document.getElementById('score-value');
+        if (el) el.textContent = currentScore;
     }
 
     function updateLevelUI() {
-        document.getElementById('level-value').textContent = currentLevel;
+        const el = document.getElementById('level-value');
+        if (el) el.textContent = currentLevel;
     }
 
     function getTimeForLevel(level) {
@@ -310,10 +314,9 @@
                 endGame();
             } else {
                 timeLeft--;
-                document.getElementById('timer-value').textContent = timeLeft;
-                const timerSpan = document.getElementById('timer-value');
-                if (timeLeft <= 10) timerSpan.style.color = '#dc2626';
-                else timerSpan.style.color = '';
+                const timerEl = document.getElementById('timer-value');
+                if (timerEl) timerEl.textContent = timeLeft;
+                if (timeLeft <= 10 && timerEl) timerEl.style.color = '#dc2626';
             }
         }, 1000);
     }
@@ -321,12 +324,17 @@
     function resetTimerForLevel() {
         if (timerInterval) clearInterval(timerInterval);
         timeLeft = getTimeForLevel(currentLevel);
-        document.getElementById('timer-value').textContent = timeLeft;
+        const timerEl = document.getElementById('timer-value');
+        if (timerEl) {
+            timerEl.textContent = timeLeft;
+            timerEl.style.color = '';
+        }
         startTimer();
     }
 
     function showFeedback(msg, type) {
         const fb = document.getElementById('feedback');
+        if (!fb) return;
         fb.innerHTML = msg;
         fb.classList.remove('feedback-success', 'feedback-error', 'feedback-info');
         if (type === 'success') fb.classList.add('feedback-success');
@@ -388,11 +396,10 @@
         }
     }
 
-    // ======================== LÓGICA DO JOGO ========================
+    // ======================== LÓGICA DE CLIQUE ========================
     function handleNumberClick(clickedNumber) {
         if (!gameActive) return;
         if (clickedNumber === nextNumberToFind) {
-            // Acertou
             playSound('correct');
             const multiplier = getMultiplierForLevel(currentLevel);
             const points = Math.floor(BASE_POINTS * multiplier);
@@ -402,9 +409,8 @@
             showFeedback(`✅ Correto! +${points} pontos`, "success");
             nextNumberToFind++;
             if (nextNumberToFind > TOTAL_NUMBERS) {
-                // Completou todos os números do nível atual
                 currentLevel++;
-                if (currentLevel > 10) { // limite máximo (evita loop infinito)
+                if (currentLevel > 15) {
                     endGame();
                     return;
                 }
@@ -416,18 +422,18 @@
                 playSound('levelup');
                 return;
             }
-            // Destaque e efeito visual
+            // Efeito visual
             const btn = numbersGridItems.find(b => parseInt(b.dataset.number) === clickedNumber);
-            if (btn) btn.classList.add('correct-flash');
-            setTimeout(() => btn?.classList.remove('correct-flash'), 300);
+            if (btn) {
+                btn.classList.add('correct-flash');
+                setTimeout(() => btn.classList.remove('correct-flash'), 300);
+            }
         } else {
-            // Errou
             playSound('wrong');
-            const esperado = nextNumberToFind;
-            errosDetalhados.push({ numeroEsperado: esperado, numeroClicado: clickedNumber });
+            errosDetalhados.push({ numeroEsperado: nextNumberToFind, numeroClicado: clickedNumber });
             currentScore = Math.max(0, currentScore - PENALTY);
             updateScoreUI();
-            showFeedback(`❌ Errado! Você clicou em ${clickedNumber}, o próximo é ${esperado}. Penalidade: -${PENALTY}`, "error");
+            showFeedback(`❌ Errado! Próximo era ${nextNumberToFind}. Penalidade: -${PENALTY}`, "error");
             const wrongBtn = numbersGridItems.find(b => parseInt(b.dataset.number) === clickedNumber);
             if (wrongBtn) {
                 wrongBtn.style.animation = 'shake 0.5s';
@@ -436,7 +442,9 @@
         }
     }
 
+    // ======================== INICIAR JOGO ========================
     function initGame() {
+        console.log("🚀 initGame chamada!");
         currentLevel = 1;
         currentScore = 0;
         nextNumberToFind = 1;
@@ -446,41 +454,43 @@
         updateLevelUI();
         renderGrid();
         resetTimerForLevel();
-        document.getElementById('feedback').innerHTML = '';
+        const fb = document.getElementById('feedback');
+        if (fb) fb.innerHTML = '';
+        console.log("✅ Jogo iniciado com sucesso!");
     }
 
+    // ======================== SALVAMENTO E RANKING ========================
     async function salvarResultado() {
         if (MODO_TESTE || !ALUNO_ID || !JOGO_ID) {
-            console.log("Modo teste ou sem parâmetros. Resultado não salvo.");
+            console.log("Modo teste ou sem parâmetros. Não salvando.");
             return;
         }
-        const totalAcertos = nextNumberToFind - 1; // Quantos números acertou (já que nextNumber é o próximo)
-        const totalErros = errosDetalhados.length;
+        const totalAcertos = nextNumberToFind - 1;
         const dados = {
             aluno_id: ALUNO_ID,
             jogo_id: JOGO_ID,
             turma_id: TURMA_ID,
             acertos: totalAcertos,
-            erros: totalErros,
+            erros: errosDetalhados.length,
             pontuacao: currentScore,
             nivel_atingido: currentLevel,
-            tempo_total: getTimeForLevel(1) - timeLeft, // tempo gasto (aproximado)
+            tempo_total: getTimeForLevel(1) - timeLeft,
             detalhes_erros: errosDetalhados,
             habilidade_bncc: 'EF07MA14'
         };
         try {
             const { error } = await supabase.from('resultados').insert([dados]);
             if (error) console.error("Erro ao salvar:", error);
-            else console.log("Resultado salvo com sucesso!");
+            else console.log("Resultado salvo!");
         } catch(e) { console.error(e); }
     }
 
     async function buscarRanking() {
-        if (!TURMA_ID || MODO_TESTE) return null;
+        if (!TURMA_ID || MODO_TESTE || !JOGO_ID) return null;
         try {
             const { data, error } = await supabase
                 .from('resultados')
-                .select('aluno_id, pontuacao')
+                .select('pontuacao')
                 .eq('turma_id', TURMA_ID)
                 .eq('jogo_id', JOGO_ID);
             if (error) throw error;
@@ -497,51 +507,78 @@
         gameActive = false;
         if (timerInterval) clearInterval(timerInterval);
         timerInterval = null;
-        document.getElementById('final-score').textContent = currentScore;
-        document.getElementById('final-level').textContent = `Nível alcançado: ${currentLevel-1}`;
+        const finalScoreSpan = document.getElementById('final-score');
+        const finalLevelSpan = document.getElementById('final-level');
+        if (finalScoreSpan) finalScoreSpan.textContent = currentScore;
+        if (finalLevelSpan) finalLevelSpan.textContent = `Nível alcançado: ${currentLevel-1}`;
         
         await salvarResultado();
         
-        if (TURMA_ID && !MODO_TESTE) {
+        if (TURMA_ID && !MODO_TESTE && JOGO_ID) {
             const ranking = await buscarRanking();
             if (ranking) {
-                document.getElementById('ranking-pos').textContent = `${ranking.posicao}º`;
-                document.getElementById('ranking-total').textContent = `entre ${ranking.total} alunos`;
-                document.getElementById('ranking-container').classList.remove('hidden');
+                const rankingPos = document.getElementById('ranking-pos');
+                const rankingTotal = document.getElementById('ranking-total');
+                const rankingContainer = document.getElementById('ranking-container');
+                if (rankingPos) rankingPos.textContent = `${ranking.posicao}º`;
+                if (rankingTotal) rankingTotal.textContent = `entre ${ranking.total} alunos`;
+                if (rankingContainer) rankingContainer.classList.remove('hidden');
             }
         }
-        document.getElementById('game-screen').style.display = 'none';
-        document.getElementById('end-screen').style.display = 'block';
+        const gameScreen = document.getElementById('game-screen');
+        const endScreen = document.getElementById('end-screen');
+        if (gameScreen) gameScreen.style.display = 'none';
+        if (endScreen) endScreen.style.display = 'block';
     }
 
     function fullRestart() {
         if (timerInterval) clearInterval(timerInterval);
         gameActive = false;
-        document.getElementById('start-screen').style.display = 'block';
-        document.getElementById('game-screen').style.display = 'none';
-        document.getElementById('end-screen').style.display = 'none';
-        document.getElementById('ranking-container').classList.add('hidden');
+        const startScreen = document.getElementById('start-screen');
+        const gameScreen = document.getElementById('game-screen');
+        const endScreen = document.getElementById('end-screen');
+        const rankingContainer = document.getElementById('ranking-container');
+        if (startScreen) startScreen.style.display = 'block';
+        if (gameScreen) gameScreen.style.display = 'none';
+        if (endScreen) endScreen.style.display = 'none';
+        if (rankingContainer) rankingContainer.classList.add('hidden');
     }
 
     function quitGame() {
         if (timerInterval) clearInterval(timerInterval);
         gameActive = false;
-        document.getElementById('start-screen').style.display = 'block';
-        document.getElementById('game-screen').style.display = 'none';
-        document.getElementById('end-screen').style.display = 'none';
+        const startScreen = document.getElementById('start-screen');
+        const gameScreen = document.getElementById('game-screen');
+        const endScreen = document.getElementById('end-screen');
+        if (startScreen) startScreen.style.display = 'block';
+        if (gameScreen) gameScreen.style.display = 'none';
+        if (endScreen) endScreen.style.display = 'none';
     }
 
-    // ======================== EVENTOS DOS BOTÕES ========================
-    document.getElementById('btn-start').addEventListener('click', () => {
-        document.getElementById('start-screen').style.display = 'none';
-        document.getElementById('game-screen').style.display = 'block';
-        initGame();
+    // ======================== EVENTOS ========================
+    document.addEventListener('DOMContentLoaded', () => {
+        console.log("📄 DOM carregado, configurando eventos...");
+        const btnStart = document.getElementById('btn-start');
+        const btnReset = document.getElementById('btn-reset');
+        const btnQuit = document.getElementById('btn-quit');
+        const btnPlayAgain = document.getElementById('btn-play-again');
+
+        if (btnStart) {
+            btnStart.addEventListener('click', () => {
+                console.log("🖱️ Botão INICIAR clicado!");
+                const startScreen = document.getElementById('start-screen');
+                const gameScreen = document.getElementById('game-screen');
+                if (startScreen) startScreen.style.display = 'none';
+                if (gameScreen) gameScreen.style.display = 'block';
+                initGame();
+            });
+        } else {
+            console.error("❌ Botão 'btn-start' não encontrado!");
+        }
+        if (btnReset) btnReset.addEventListener('click', () => { if (gameActive) initGame(); });
+        if (btnQuit) btnQuit.addEventListener('click', quitGame);
+        if (btnPlayAgain) btnPlayAgain.addEventListener('click', fullRestart);
     });
-    document.getElementById('btn-reset').addEventListener('click', () => {
-        if (gameActive) initGame();
-    });
-    document.getElementById('btn-quit').addEventListener('click', quitGame);
-    document.getElementById('btn-play-again').addEventListener('click', fullRestart);
 
     // Ativar áudio no primeiro clique
     document.body.addEventListener('click', () => {
