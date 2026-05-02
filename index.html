@@ -118,7 +118,6 @@
         .feedback-sucesso { background: #bbf7d0; color: #166534; }
         .feedback-erro { background: #fee2e2; color: #991b1b; }
         .hidden { display: none; }
-        /* Estilos para textos de status (substitui Tailwind) */
         .text-sm { font-size: 14px; }
         .text-center { text-align: center; }
         .mt-2 { margin-top: 8px; }
@@ -126,6 +125,7 @@
         .text-vermelho { color: #e53e3e; }
         .text-verde { color: #10b981; }
         .text-amarelo { color: #f59e0b; }
+        .font-bold { font-weight: bold; }
     </style>
 </head>
 <body>
@@ -140,7 +140,8 @@
             • Encontre o número 1, depois o 2, até o 25.<br>
             • O tempo diminui a cada nível (Nível 1: 60s, Nível 2: 45s, Nível 3: 35s, Nível 4: 25s, Nível 5+: 20s).<br>
             • Cliques errados perdem 5 pontos.<br>
-            • O próximo número fica destacado em amarelo.
+            • O próximo número fica destacado em amarelo.<br>
+            🔊 Sons ativados!
         </div>
         <button id="btnIniciar">🚀 INICIAR JOGO</button>
         <div id="statusConexao" class="text-sm text-center mt-3"></div>
@@ -164,6 +165,12 @@
             <p><strong>Nível alcançado:</strong> <span id="finalNivel">1</span></p>
             <p><strong>Acertos:</strong> <span id="finalAcertos">0</span> / 25</p>
             <p><strong>Erros:</strong> <span id="finalErros">0</span></p>
+            <div id="rankingContainer" class="hidden mt-3 pt-2 border-t border-indigo-200">
+                <p class="font-bold">🏅 Posição na turma</p>
+                <p class="text-2xl font-black" id="rankingPos">--</p>
+                <p class="text-xs" id="rankingTotal"></p>
+                <p class="text-xs text-slate-500 mt-1">* Melhor desempenho (mais pontos, menor tempo)</p>
+            </div>
             <div id="msgSalvo" class="text-sm mt-2"></div>
         </div>
         <button id="btnNovamente">🔄 JOGAR NOVAMENTE</button>
@@ -171,12 +178,12 @@
 </div>
 
 <script>
-    // Supabase
+    // ========== SUPABASE ==========
     const SUPABASE_URL = 'https://qmcqffnawtfaenyziwsn.supabase.co';
     const SUPABASE_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InFtY3FmZm5hd3RmYWVueXppd3NuIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzQxNTM5NTMsImV4cCI6MjA4OTcyOTk1M30._CjaNoeJeQp-8s8Jt-dk3bJfktdEV97R5LhLnWgYrNc';
     const supabaseClient = window.supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
 
-    // Parâmetros da URL
+    // ========== PARÂMETROS ==========
     const urlParams = new URLSearchParams(window.location.search);
     const alunoId = urlParams.get('aluno_id');
     const jogoId = urlParams.get('jogo_id');
@@ -195,7 +202,62 @@
         statusDiv.className = 'text-sm text-center mt-3 text-verde';
     }
 
-    // Configurações do jogo
+    // ========== SOM ==========
+    let audioCtx = null;
+    function tocarSom(tipo) {
+        if (!audioCtx) {
+            audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+        }
+        const now = audioCtx.currentTime;
+        const gain = audioCtx.createGain();
+        gain.connect(audioCtx.destination);
+        const osc = audioCtx.createOscillator();
+        osc.connect(gain);
+        osc.type = 'sine';
+
+        if (tipo === 'acerto') {
+            osc.frequency.value = 880;
+            gain.gain.setValueAtTime(0.3, now);
+            gain.gain.exponentialRampToValueAtTime(0.0001, now + 0.5);
+            osc.start(now);
+            osc.stop(now + 0.3);
+        } else if (tipo === 'erro') {
+            osc.frequency.value = 220;
+            gain.gain.setValueAtTime(0.25, now);
+            gain.gain.exponentialRampToValueAtTime(0.0001, now + 0.4);
+            osc.start(now);
+            osc.stop(now + 0.25);
+        } else if (tipo === 'levelup') {
+            osc.frequency.value = 523.25;
+            gain.gain.setValueAtTime(0.2, now);
+            gain.gain.exponentialRampToValueAtTime(0.0001, now + 0.6);
+            osc.start(now);
+            osc.stop(now + 0.4);
+            const osc2 = audioCtx.createOscillator();
+            osc2.connect(gain);
+            osc2.frequency.value = 659.25;
+            osc2.start(now + 0.15);
+            osc2.stop(now + 0.55);
+        } else if (tipo === 'fim') {
+            [523.25, 493.88, 440, 392].forEach((freq, i) => {
+                const o = audioCtx.createOscillator();
+                const g = audioCtx.createGain();
+                o.connect(g);
+                g.connect(audioCtx.destination);
+                o.frequency.value = freq;
+                g.gain.setValueAtTime(0.15, now + i*0.1);
+                g.gain.exponentialRampToValueAtTime(0.0001, now + i*0.1 + 0.6);
+                o.start(now + i*0.1);
+                o.stop(now + i*0.1 + 0.5);
+            });
+        }
+    }
+
+    document.body.addEventListener('click', () => {
+        if (audioCtx && audioCtx.state === 'suspended') audioCtx.resume();
+    }, { once: true });
+
+    // ========== CONFIGURAÇÕES DO JOGO ==========
     const TOTAL = 25;
     const TEMPOS = [60, 45, 35, 25, 20];
     const MULT = [1, 1.5, 2, 2.5, 3];
@@ -212,7 +274,6 @@
     let erros = [];
     let tempoInicio = null;
 
-    // Elementos DOM
     const telaInicial = document.getElementById('telaInicial');
     const telaJogo = document.getElementById('telaJogo');
     const telaFinal = document.getElementById('telaFinal');
@@ -261,6 +322,7 @@
                 intervalo = null;
                 jogoAtivo = false;
                 mostrarFeedback("⏰ TEMPO ESGOTADO!", "erro");
+                tocarSom('fim');
                 finalizarJogo();
             } else {
                 tempoRestante--;
@@ -331,6 +393,7 @@
             atualizarUI();
             marcarCompleto(numClicado);
             mostrarFeedback(`✅ Correto! +${ganho} pontos`, "sucesso");
+            tocarSom('acerto');
             proximo++;
             if (proximo > TOTAL) {
                 nivel++;
@@ -339,6 +402,7 @@
                 criarGrid();
                 reiniciarTempo();
                 mostrarFeedback(`🚀 AVANÇOU PARA O NÍVEL ${nivel}!`, "sucesso");
+                tocarSom('levelup');
                 return;
             }
             destacarProximo();
@@ -347,6 +411,7 @@
             pontos = Math.max(0, pontos - PENALIDADE);
             atualizarUI();
             mostrarFeedback(`❌ Errado! Próximo era ${proximo}. -${PENALIDADE} pontos`, "erro");
+            tocarSom('erro');
         }
     }
 
@@ -374,7 +439,8 @@
             erros: totalErros,
             tempo_segundos: tempoDecorrido,
             total_questoes: TOTAL,
-            habilidade_bncc: 'EF07MA14'
+            habilidade_bncc: 'EF07MA14',
+            pontuacao: Math.floor(pontos)
         };
         if (totalErros > 0) dados.detalhes_erros = erros;
 
@@ -389,6 +455,63 @@
             msgDiv.innerHTML = '✅ Pontuação registrada com sucesso!';
             msgDiv.style.color = '#10b981';
         }
+        return !error;
+    }
+
+    async function buscarRanking() {
+        if (modoTeste || !turmaId || !jogoId) return;
+        try {
+            // Busca o MELHOR resultado de cada aluno da turma (maior pontuação, e menor tempo como desempate)
+            // Mas para simplificar, vamos buscar todos os registros e depois agrupar manualmente por aluno pegando o melhor.
+            const { data, error } = await supabaseClient
+                .from('resultados')
+                .select('aluno_id, pontuacao, tempo_segundos')
+                .eq('turma_id', turmaId)
+                .eq('jogo_id', jogoId);
+            if (error) throw error;
+            if (!data || data.length === 0) return;
+
+            // Agrupar por aluno_id, pegando a maior pontuação e, em caso de empate, menor tempo
+            const melhoresPorAluno = new Map();
+            for (const reg of data) {
+                const existing = melhoresPorAluno.get(reg.aluno_id);
+                if (!existing) {
+                    melhoresPorAluno.set(reg.aluno_id, { pontuacao: reg.pontuacao, tempo: reg.tempo_segundos });
+                } else {
+                    if (reg.pontuacao > existing.pontuacao ||
+                        (reg.pontuacao === existing.pontuacao && reg.tempo_segundos < existing.tempo)) {
+                        melhoresPorAluno.set(reg.aluno_id, { pontuacao: reg.pontuacao, tempo: reg.tempo_segundos });
+                    }
+                }
+            }
+
+            // Converter para array e ordenar por pontuação desc, tempo asc
+            const lista = Array.from(melhoresPorAluno.entries()).map(([aluno, dados]) => ({ aluno, ...dados }));
+            lista.sort((a, b) => {
+                if (a.pontuacao !== b.pontuacao) return b.pontuacao - a.pontuacao;
+                return a.tempo - b.tempo;
+            });
+
+            // Encontrar posição do aluno atual
+            const minhaPontuacao = Math.floor(pontos);
+            const meuTempo = Math.floor((Date.now() - tempoInicio) / 1000);
+            let posicao = 1;
+            for (const item of lista) {
+                if (item.pontuacao > minhaPontuacao ||
+                    (item.pontuacao === minhaPontuacao && item.tempo < meuTempo)) {
+                    posicao++;
+                } else {
+                    break;
+                }
+            }
+
+            const rankingDiv = document.getElementById('rankingContainer');
+            document.getElementById('rankingPos').textContent = `${posicao}º`;
+            document.getElementById('rankingTotal').textContent = `entre ${lista.length} alunos (melhor desempenho)`;
+            rankingDiv.classList.remove('hidden');
+        } catch(e) {
+            console.error("Erro no ranking:", e);
+        }
     }
 
     async function finalizarJogo() {
@@ -396,15 +519,14 @@
         jogoAtivo = false;
         if (intervalo) clearInterval(intervalo);
         intervalo = null;
-        // Atualiza os dados na tela final
         document.getElementById('finalPontos').textContent = Math.floor(pontos);
         document.getElementById('finalNivel').textContent = nivel;
         document.getElementById('finalAcertos').textContent = proximo - 1;
         document.getElementById('finalErros').textContent = erros.length;
         telaJogo.classList.add('hidden');
         telaFinal.classList.remove('hidden');
-        // Aguarda o salvamento terminar
         await salvarResultado();
+        await buscarRanking();
     }
 
     function iniciarJogo() {
@@ -421,6 +543,7 @@
         telaJogo.classList.remove('hidden');
         telaFinal.classList.add('hidden');
         if (feedback) feedback.textContent = '';
+        document.getElementById('rankingContainer').classList.add('hidden');
     }
 
     function sairJogo() {
@@ -440,7 +563,6 @@
         telaInicial.classList.remove('hidden');
     }
 
-    // Eventos
     document.getElementById('btnIniciar').onclick = iniciarJogo;
     document.getElementById('btnSair').onclick = sairJogo;
     document.getElementById('btnNovamente').onclick = () => {
